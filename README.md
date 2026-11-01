@@ -1,6 +1,8 @@
-# Local communication in the Philips Avent SCD923/26
+# Philips Avent SCD923/26 baby monitor: local protocol and QR pairing
 
-**A short interoperability research note · 1 November 2026**
+Independent interoperability research · 1 November 2026
+
+This paper describes how the Philips Avent SCD923/26 baby monitor pairs over Wi-Fi, establishes an encrypted local session and streams video over RTSP. It documents the handheld's QR pairing screen and the protocol behavior observed during development of a local Home Assistant prototype.
 
 ## Abstract
 
