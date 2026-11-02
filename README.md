@@ -1,6 +1,6 @@
 # Philips Avent SCD923/26 baby monitor: local protocol and QR pairing
 
-Independent interoperability research · 1 November 2026
+Independent interoperability research · Revised 2 November 2026
 
 This paper describes how the Philips Avent SCD923/26 baby monitor pairs over Wi-Fi, establishes an encrypted local session and streams video over RTSP. It documents the handheld's QR pairing screen and the protocol behavior observed during development of a local Home Assistant prototype.
 
@@ -8,11 +8,11 @@ This paper describes how the Philips Avent SCD923/26 baby monitor pairs over Wi-
 
 The SCD923/26 supports a local connection between its handheld parent unit and baby unit. Examination of a user-owned handheld's firmware, followed by an independent client implementation, enabled live video, room audio, intelligible talkback and device controls without a manufacturer account in the tested local setup. The connection combines proprietary session establishment with RTSP video and separate audio channels. A normal RTSP player cannot reproduce the complete exchange on its own.
 
-On the same handheld, a pairing dialog displays a QR code containing newly generated direct Wi-Fi credentials. A photograph of the display yielded both the network name and the 16-character password. Presenting the code to the baby unit produced no visible response in the owner's attempt. Camera acceptance and a complete new pairing remain open questions. These findings concern one SCD923/26 set and the firmware examined.
+The handheld can display a QR code containing a newly generated direct Wi-Fi network name and 16-character password. On one SCD923/26 set, the owner put the handheld in direct-only mode before generating the code, put the baby unit into scan mode and showed it the handheld display. The handheld reconnected. Across the pairing attempts, the owner also reported that Home Assistant needed the new key. The handheld's firmware explains why the camera can accept a key before the handheld saves it.
 
 ## Method and evidence
 
-The investigation combined analysis of the handheld application's behavior, offline protocol comparisons, and local interoperability tests against the paired baby unit. For the pairing dialog, isolated ARM emulation exercised the handheld's button and UI routines with synthetic credentials. Device I/O, networking and persistent writes were intercepted. A separate observation used a photograph of the real handheld display.
+The investigation combined analysis of the handheld application, offline protocol comparisons and local interoperability tests against the paired baby unit. Isolated ARM emulation exercised the handheld's button, Wi-Fi and pairing routines with synthetic credentials. The emulator intercepted network access and file writes. Physical observations come from the owner's pairing attempts and photographs of both units.
 
 Evidence is distinguished below as **observed** for behavior exercised on the device, **reconstructed** for behavior inferred from the handheld firmware, and **unresolved** where the available evidence is insufficient. The diagram is a reconstruction of the original handheld's logical exchange, not a captured packet trace. Initial pairing and Wi-Fi provisioning are outside its scope.
 
@@ -47,21 +47,28 @@ The handheld has a separate path for **re-pairing**. It generates a new direct n
 
 **Observed on the handheld.** The owner photographed the pairing screen and identified both physical controls. Decoding the original photograph locally yielded a JSON object. Its three fields were `dev` (the handheld type, `pu`), `ssid` (the newly generated direct network name) and `passwd` (the new 16-character password). The figure uses the owner's photograph with the display replaced. Scanning the published figure returns the values in the [synthetic JSON example](examples/handheld-qr.json).
 
-**Reconstructed on the handheld.** From the video or mode view, holding **MODE and Menu together for about ten seconds** opens the pairing dialog. MODE is the elongated edge button beside a rectangle. Menu is the separate round button marked ≡ below the directional pad. The ten-second threshold comes from the application and was reproduced with simulated button presses.
+**Pairing sequence reported to work on this set**
+
+1. On the handheld, select **direct-only mode** and let it switch before opening the QR dialog. This selects the direct Wi-Fi link to the baby unit. The camera's privacy setting is a separate control.
+2. From the video or mode view, hold **MODE and Menu together for about ten seconds**. MODE is the elongated edge button beside a rectangle. Menu is the round button marked ≡ below the directional pad. The QR dialog starts a new pairing attempt, which can interrupt the existing connection.
+3. On the baby unit, hold **Nightlight and Lullaby together for about three seconds**. The setup dialog identifies an orange pulsing nightlight as the scan-ready indication. Show the QR code on the handheld display to the camera. The owner heard a confirmation tone after a scan.
+4. Leave the QR dialog open while the handheld reconnects. A short press of the centre **OK** button cancels a pending attempt. If using the local Home Assistant integration, enter the current code's `passwd` as the pairing key. The integration tests it against the camera before saving it.
+
+![Baby-unit controls in the orientation of the owner's photograph. Power is on the left. Hold Nightlight at upper right and Lullaby at lower right together.](figures/camera-scan-buttons.png)
 
 | Stage | Effect on the handheld |
 | --- | --- |
 | Dialog opens | The handheld generates new credentials, requests a switch to direct Wi-Fi if needed and starts connecting with the new values. Monitoring can therefore be interrupted as soon as the code appears. |
-| Pairing succeeds | After an initial five-second delay, the dialog checks both WLAN connection status and a success flag set during device-information reply handling. When both conditions hold, it copies the new values into the saved pairing settings and requests persistent writes. |
+| Pairing succeeds | After an initial five-second delay, the dialog checks Wi-Fi reachability and whether the handheld's own control session has received device information. Once both conditions hold, the handheld requests persistent writes of the new credentials. |
 | Pairing is still pending | A short press and release of **OK**, or expiry of the **five-minute** timeout, restores the old handheld credentials and starts a connection attempt with them. Reopening the dialog generates a fresh pair. |
 
-**Observed at the baby unit, outcome unresolved.** The owner reported no visible response when presenting the QR code to the camera. This leaves open how the baby unit enters a scanning state, whether it read the code in that attempt, and when it would save new credentials. The recovery path above was reconstructed on the handheld only. Whether the camera retains its home-network connection after successful re-pairing is also unknown.
+**Why the two units can disagree.** A camera scan and a handheld save are separate events. In direct mode, the handheld pings `192.170.1.1`. Its Wi-Fi check requires at least six successful results in a window of up to fifteen. The other check depends on the handheld's own encrypted control session on TCP 6000. In an isolated test, the device-information reply (`0x8002`) set the confirmation flag even with an empty JSON object. No QR-specific acknowledgement field was needed. A successful login from Home Assistant confirms the key on the camera side only.
 
-A photograph therefore provides the credentials for the **current pairing attempt**. An end-to-end Home Assistant setup from that photograph would also require the camera to adopt those credentials, remain reachable, and complete an authenticated device-information exchange with the client. That sequence has yet to be demonstrated.
+**Why switching to direct-only first can help.** If the QR dialog opens while the handheld is using router Wi-Fi, it requests a switch and waits about five seconds. In emulation, the dialog continued when that wait expired. A delayed switch could then write the old Wi-Fi profile over the temporary file prepared with the new credentials. This reproduces one possible cause of the earlier failed attempt. The event order on the physical handheld was not recorded. In the successful attempt the owner selected direct-only first and reported that the handheld reconnected. Persistence across a later reboot was not tested.
 
 ## Features and implementation lessons
 
-The reconstructed controls cover the nightlight and brightness, built-in sounds and playback volume, timers, temperature reporting and alert settings, Wi-Fi reception, microphone sensitivity and talkback. A local Home Assistant prototype exposes these capabilities. Its image-change detector is calculated from decoded video; it must not be described as a recovered native camera motion event.
+The reconstructed controls cover the nightlight and brightness, built-in sounds and playback volume, timers, temperature reporting and alert settings, Wi-Fi reception, microphone sensitivity and talkback. The local Home Assistant integration exposes these capabilities. Version 0.5.2 removed the prototype's video-based motion detector.
 
 Several details materially affected interoperability:
 
@@ -77,7 +84,7 @@ The local path worked without a manufacturer account or cloud connection being u
 
 Further work should establish discovery behavior on real networks, compatibility across firmware revisions, the purpose of the secondary connection, full-duplex audio behavior, and the conditions under which multiple native clients can coexist. Firmware-update distribution and the original provisioning of pairing secrets are outside the confirmed results.
 
-The practical result is local interoperability with an already-paired device whose owner has its pairing material. It is not evidence of unauthenticated access to arbitrary cameras.
+On the tested set, the owner could obtain fresh pairing material from the handheld display and reconnect the units using their physical controls.
 
 ## Legal notice
 
