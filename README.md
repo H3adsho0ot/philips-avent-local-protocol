@@ -115,11 +115,31 @@ The contributor's diagnostic runs observed these additional messages with both l
 
 Thank you to [@leonardpitzu](https://github.com/leonardpitzu), who opened issue #1, shared the SCD973 observations and diagnostic results, confirmed the pairing procedure, and permitted their inclusion with attribution. Private captures and pairing secrets are excluded from this publication.
 
+## Firmware updates: reconstructed paths and observed availability
+
+The following findings concern the examined SCD923/26 setup. They combine offline analysis of the handheld update software, isolated tests with synthetic inputs, local service checks, and authenticated read-only cloud metadata queries. Their applicability to the SCD973 has not been established. No firmware download or installation was completed in these investigations.
+
+| Area | Finding | Evidence and limit |
+| --- | --- | --- |
+| Cloud firmware catalogs | Two modules, labelled Main Module and MCU Module, reported current version `1.4.0`, with `upgradeStatus=0` and no offered target version or download URL. | Observed on 5 November 2026 for the account-associated camera; describes those responses at that time. |
+| Additional catalog | Requests with current-version values `1.4.0` and `1.3.0` both returned `DEVICE_NOT_EXISTS`. | Observed for module types 0 and 9; the older value was only a request parameter, not an installed version or a change to the device's cloud record. |
+| Local handheld updater | The updater is designed to obtain files from the baby unit over FTP on TCP 5231, with separate update communication on TCP 8426. | Reconstructed from program behavior and isolated tests; a complete live transfer remains unverified. |
+| Update signaling | The handheld distinguishes firmware, recovery, and combined update states. Its ordinary version query is a separate operation. | Reconstructed and exercised with synthetic inputs; does not establish how the camera selects an update or enables its services. |
+| Local service availability | All 406 connection attempts to ports 5231 and 8426 were explicitly refused across six test conditions. | Observed on 4 November 2026; applies to the tested states and sampled times. |
+
+**Cloud catalog observations.** Successful queries to `m.thing.firmware.upgrade.info.get/1.1`, `thing.m.device.upgrade.info/1.2`, and `m.thing.firmware.upgrade.info.get/2.0` agreed on the installed versions and absence of a download offer. The additional catalog was `thing.m.local.device.upgrade.info/1.0`. Its error does not invalidate the successful standard-catalog responses. An absent offer does not establish that no firmware package exists or that other devices, accounts or rollout conditions would receive the same response. The cloud module identifiers must not be equated with the handheld's firmware/recovery status values.
+
+**Local updater observations.** The reconstructed transfer direction is from the baby unit to the handheld. The source of packages before their availability on the baby unit is unresolved, as is any connection between this local transfer path and the cloud catalogs. The updater's start exchange requires an existing connection to TCP 8426, so that exchange cannot itself make an unreachable listener on that port reachable.
+
+The six local test conditions each included six minutes of observation and together produced 203 measurement rounds covering both ports. No service opening was observed. Discrete checks cannot exclude brief openings between samples, and the tests did not reproduce a genuine pending update. The results do not show that the reconstructed services are permanently disabled.
+
+**Open questions.** What enables the update listeners, how packages reach the baby unit, and how a complete offered update proceeds through package validation and installation remain unverified. These findings document partial paths and observed availability; they do not yet provide a working update or firmware-download procedure.
+
 ## Scope and open questions
 
 The local path worked without a manufacturer account or cloud connection being used by the independent client. This does not characterize every network connection made by the product or replace an audit of its cloud services.
 
-Further work should establish discovery behavior on real networks, compatibility across firmware revisions, the purpose of the secondary connection, full-duplex audio behavior, and the conditions under which multiple native clients can coexist. Firmware-update distribution and the original provisioning of pairing secrets are outside the confirmed results.
+Further work should establish discovery behavior on real networks, compatibility across firmware revisions, the purpose of the secondary connection, full-duplex audio behavior, and the conditions under which multiple native clients can coexist. The update findings above cover partial paths and catalog responses; complete firmware distribution and installation, together with the original provisioning of pairing secrets, remain unresolved.
 
 On the tested set, the owner could obtain fresh pairing material from the handheld display and reconnect the units using their physical controls.
 
