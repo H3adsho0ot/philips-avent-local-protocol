@@ -6,7 +6,7 @@ Independent interoperability research · Revised 5 November 2026
 
 This paper investigates local protocols and QR pairing in Philips Avent baby monitors. The findings documented below describe how the SCD923/26 pairs over Wi-Fi, establishes an encrypted local session and streams video over RTSP. The companion repository includes the integration and its installation guide: [Avent local for Home Assistant](https://github.com/H3adsho0ot/ha-local-babyphone).
 
-**Model scope.** Local interoperability has been tested on the SCD923/26. Investigation of the SCD973 is ongoing, based initially on contributor reports; successful authentication has not been confirmed, and no SCD973 has been tested locally for this research. Unless explicitly stated otherwise, the findings and pairing instructions below apply to the examined SCD923/26 setup and have not been verified for other models.
+**Model scope.** Local interoperability has been tested on the SCD923/26. Contributor reports for the SCD973 show substantial overlap, including the physical QR-pairing procedure, alongside differences in the QR contents and session establishment. These reports are attributed below and have not been independently verified on an SCD973 by this project. Successful SCD973 authentication with the independent client remains unconfirmed. Unless explicitly stated otherwise, the technical findings below apply to the examined SCD923/26 setup.
 
 **Private contributions.** Have findings, network captures, firmware files or dumps to contribute privately? Contact me on Discord to arrange sharing. Please do not attach sensitive files to public GitHub issues.
 
@@ -22,7 +22,7 @@ The handheld can display a QR code containing a newly generated direct Wi-Fi net
 
 The investigation combined analysis of the handheld application, offline protocol comparisons and local interoperability tests against the paired baby unit. Isolated ARM emulation exercised the handheld's button, Wi-Fi and pairing routines with synthetic credentials. The emulator intercepted network access and file writes. Physical observations come from the owner's pairing attempts and photographs of both units.
 
-Evidence is distinguished below as **observed** for behavior exercised on the device, **reconstructed** for behavior inferred from the handheld firmware, and **unresolved** where the available evidence is insufficient. The diagram is a reconstruction of the original handheld's logical exchange, not a captured packet trace. Initial pairing and Wi-Fi provisioning are outside its scope.
+Evidence is distinguished below as **observed** for behavior exercised on the examined SCD923/26, **reconstructed** for behavior inferred from its handheld firmware, **contributor-reported** for external device observations not independently verified by this project, and **unresolved** where the available evidence is insufficient. The diagram is a reconstruction of the original SCD923/26 handheld's logical exchange, not a captured packet trace. Initial pairing and Wi-Fi provisioning are outside its scope.
 
 ## Handheld connection sequence
 
@@ -53,18 +53,26 @@ The handheld has a separate path for **re-pairing**. It generates a new direct n
 
 ![Handheld photograph with a synthetic QR on the display. The MODE button has a rectangular symbol on the housing edge. The round Menu button has three horizontal lines below the directional pad.](figures/handheld-pairing.jpg)
 
-**Observed on the handheld.** The owner photographed the pairing screen and identified both physical controls. Decoding the original photograph locally yielded a JSON object. Its three fields were `dev` (the handheld type, `pu`), `ssid` (the newly generated direct network name) and `passwd` (the new 16-character password). The figure uses the owner's photograph with the display replaced. Scanning the published figure returns the values in the [synthetic JSON example](examples/handheld-qr.json).
+**Observed on the SCD923/26 handheld.** The owner photographed the pairing screen and identified both physical controls. Decoding the original photograph locally yielded a JSON object. Its three fields were `dev` (the handheld type, `pu`), `ssid` (the newly generated direct network name) and `passwd` (the new 16-character password). The figure uses the owner's photograph with the display replaced. Scanning the published figure returns the values in the [synthetic JSON example](examples/handheld-qr.json).
 
-**Pairing sequence reported to work on this set**
+**Contributor-reported SCD973 QR format.** The SCD973 uses the fields `dev`, `si`, `pd` and `ver`. An illustrative shape with placeholders, not usable pairing data, is `{"dev":"...","si":"...","pd":"...","ver":"001"}`. The contributor reports that `pd` contains a Base64-encoded 16-byte value, rather than the SCD923/26's 16-character `passwd`. The role of that value in SCD973 session establishment remains under investigation; decoding Base64 alone does not establish compatibility with the existing client. See [SCD973 support, issue #1](https://github.com/H3adsho0ot/philips-avent-local-protocol/issues/1).
+
+**Pairing procedure: SCD923/26 and contributor-reported SCD973**
+
+The SCD923/26 owner reported the following physical procedure to work. SCD973 contributor [@leonardpitzu](https://github.com/leonardpitzu) [confirmed the same procedure on their set](https://github.com/H3adsho0ot/philips-avent-local-protocol/issues/1#issuecomment-6667856286): direct mode, MODE + Menu for about ten seconds, then Nightlight + Lullaby for about three seconds. This confirms the reported user-facing procedure, not identical firmware behavior or support in the independent client.
 
 1. On the handheld, select **direct-only mode** and let it switch before opening the QR dialog. This selects the direct Wi-Fi link to the baby unit. The camera's privacy setting is a separate control.
 2. From the video or mode view, hold **MODE and Menu together for about ten seconds**. MODE is the elongated edge button beside a rectangle. Menu is the round button marked ≡ below the directional pad. The QR dialog starts a new pairing attempt, which can interrupt the existing connection.
-3. On the baby unit, hold **Nightlight and Lullaby together for about three seconds**. The setup dialog identifies an orange pulsing nightlight as the scan-ready indication. Show the QR code on the handheld display to the camera. The owner heard a confirmation tone after a scan.
-4. Leave the QR dialog open while the handheld reconnects. A short press of the centre **OK** button cancels a pending attempt. If using the local Home Assistant integration, enter the current code's `passwd` as the pairing key. The integration tests it against the camera before saving it.
+3. On the baby unit, hold **Nightlight and Lullaby together for about three seconds**, then show the QR code on the handheld display to the camera. On the SCD923/26, the setup dialog identifies an orange pulsing nightlight as the scan-ready indication, and the owner heard a confirmation tone after a scan.
+4. Leave the QR dialog open while the handheld reconnects.
+
+**SCD923/26-specific notes.** A short press of the centre **OK** button cancels a pending attempt on the examined handheld. If using the local Home Assistant integration with this model, enter the current code's `passwd` as the pairing key. The integration tests it against the camera before saving it. This instruction does not establish SCD973 support.
 
 ![Baby-unit controls in the orientation of the owner's photograph. Power is on the left. Hold Nightlight at upper right and Lullaby at lower right together.](figures/camera-scan-buttons.png)
 
-| Stage | Effect on the handheld |
+**SCD923/26 firmware behavior.** The state transitions and explanations below were reconstructed from the examined SCD923/26 handheld; they have not been verified for the SCD973.
+
+| Stage | Effect on the SCD923/26 handheld |
 | --- | --- |
 | Dialog opens | The handheld generates new credentials, requests a switch to direct Wi-Fi if needed and starts connecting with the new values. Monitoring can therefore be interrupted as soon as the code appears. |
 | Pairing succeeds | After an initial five-second delay, the dialog checks Wi-Fi reachability and whether the handheld's own control session has received device information. Once both conditions hold, the handheld requests persistent writes of the new credentials. |
@@ -85,6 +93,14 @@ Several details materially affected interoperability:
 - **Talkback needs the correct codec state.** The reconstructed format uses 16 kHz mono audio in 40 ms blocks with an IMA ADPCM step index carried between blocks. Offline packet comparisons and a listener's confirmation of intelligible speech supported the implementation. Simultaneous listening and speaking are not yet established as reliable full-duplex operation.
 - **Native clients can compete.** The handheld and the independent client interfered with one another in testing. In the installed integration, multiple Home Assistant views share one native session. Device testing confirmed that the integration releases its native connections ten seconds after the last viewer leaves. Simultaneous operation with the handheld remains unverified.
 - **Privacy mode affects reachability.** Activating the native privacy setting made the baby unit unreachable on the LAN during a longer test. Remote reversal was then unavailable. It should not be presented as a harmless local display toggle.
+
+## SCD973: shared elements and differences
+
+**Contributor-reported; investigation ongoing.** The [SCD973 report](https://github.com/H3adsho0ot/philips-avent-local-protocol/issues/1) describes overlap in the service ports, packet framing and CRC, the RTSP `/av2_0` endpoint, and selective video encryption. The physical pairing procedure also matches, as described above. The SCD973 nevertheless does not behave identically: its QR schema differs, and the reported login exchange includes a different trailer and incoming messages `0x0930` and `0x0931`.
+
+The contributor's diagnostic runs observed these additional messages with both login profiles, without establishing authentication. Their precise role, the cipher and key handling, and the requirements for a working independent session remain unresolved. A challenge-response mechanism is a hypothesis, not an established result. More detailed findings will be added to this paper as they are clarified and verified.
+
+Thank you to [@leonardpitzu](https://github.com/leonardpitzu), who opened issue #1, shared the SCD973 observations and diagnostic results, confirmed the pairing procedure, and permitted their inclusion with attribution. Private captures and pairing secrets are excluded from this publication.
 
 ## Scope and open questions
 
