@@ -96,6 +96,19 @@ Several details materially affected interoperability:
 
 ## SCD973: shared elements and differences
 
+The table summarizes the evidence above and the [contributor's SCD973 observations](https://github.com/H3adsho0ot/philips-avent-local-protocol/issues/1). The SCD973 column has not been independently verified by this project.
+
+| Aspect | SCD923/26 — local research | SCD973 — contributor-reported |
+| --- | --- | --- |
+| Physical QR pairing | Direct mode; MODE + Menu ~10 s; Nightlight + Lullaby ~3 s | Same procedure reported |
+| QR fields | `dev`, `ssid`, `passwd` | `dev`, `si`, `pd`, `ver`; `ver` is `001` |
+| Pairing material in QR | `passwd`: 16-character password used as pairing key | `pd`: Base64-encoded 16-byte value; session-key handling unresolved |
+| TCP service ports | 554, 6000, 8684, 8686, 8687 | Same ports reported |
+| Packet framing and CRC | Reconstructed and used by the independent client | Matching framing and CRC reported |
+| Video | RTSP `/av2_0`, H.264, selective payload encryption | Same endpoint and video characteristics reported |
+| Session establishment | Implemented and locally tested | Additional `0x0930` / `0x0931` messages; authentication requirements unresolved |
+| Avent local compatibility | Working local integration on the tested set | Successful authentication with the independent client not confirmed |
+
 **Contributor-reported; investigation ongoing.** The [SCD973 report](https://github.com/H3adsho0ot/philips-avent-local-protocol/issues/1) describes overlap in the service ports, packet framing and CRC, the RTSP `/av2_0` endpoint, and selective video encryption. The physical pairing procedure also matches, as described above. The SCD973 nevertheless does not behave identically: its QR schema differs, and the reported login exchange includes a different trailer and incoming messages `0x0930` and `0x0931`.
 
 The contributor's diagnostic runs observed these additional messages with both login profiles, without establishing authentication. Their precise role, the cipher and key handling, and the requirements for a working independent session remain unresolved. A challenge-response mechanism is a hypothesis, not an established result. More detailed findings will be added to this paper as they are clarified and verified.
