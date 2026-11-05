@@ -8,6 +8,10 @@ This paper investigates local protocols and QR pairing in Philips Avent baby mon
 
 **Model scope.** Local interoperability has been tested on the SCD923/26. Investigation of the SCD973 is ongoing, based initially on contributor reports; successful authentication has not been confirmed, and no SCD973 has been tested locally for this research. Unless explicitly stated otherwise, the findings and pairing instructions below apply to the examined SCD923/26 setup and have not been verified for other models.
 
+**Private contributions.** Have findings, network captures, firmware files or dumps to contribute privately? Contact me on Discord to arrange sharing. Please do not attach sensitive files to public GitHub issues.
+
+[![Contact privately on Discord](https://img.shields.io/badge/Discord-Contact%20privately-5865F2?style=for-the-badge)](https://discord.com/users/415593679105818625)
+
 ## Abstract
 
 The SCD923/26 supports a local connection between its handheld parent unit and baby unit. Examination of a user-owned handheld's firmware, followed by an independent client implementation, enabled live video, room audio, intelligible talkback and device controls without a manufacturer account in the tested local setup. The connection combines proprietary session establishment with RTSP video and separate audio channels. A normal RTSP player cannot reproduce the complete exchange on its own.
