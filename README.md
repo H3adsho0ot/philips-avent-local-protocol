@@ -1,8 +1,12 @@
-# Philips Avent SCD923/26 baby monitor: local protocol and QR pairing
+# Philips Avent Baby Monitors: Local Protocols and QR Pairing
 
-Independent interoperability research · Revised 2 November 2026
+*Interoperability research on SCD923/26 and additional models*
 
-This paper describes how the Philips Avent SCD923/26 baby monitor pairs over Wi-Fi, establishes an encrypted local session and streams video over RTSP. The companion repository includes the integration and its installation guide: [Avent local for Home Assistant](https://github.com/H3adsho0ot/ha-local-babyphone).
+Independent interoperability research · Revised 5 November 2026
+
+This paper investigates local protocols and QR pairing in Philips Avent baby monitors. The findings documented below describe how the SCD923/26 pairs over Wi-Fi, establishes an encrypted local session and streams video over RTSP. The companion repository includes the integration and its installation guide: [Avent local for Home Assistant](https://github.com/H3adsho0ot/ha-local-babyphone).
+
+**Model scope.** Local interoperability has been tested on the SCD923/26. Investigation of the SCD973 is ongoing, based initially on contributor reports; successful authentication has not been confirmed, and no SCD973 has been tested locally for this research. Unless explicitly stated otherwise, the findings and pairing instructions below apply to the examined SCD923/26 setup and have not been verified for other models.
 
 ## Abstract
 
